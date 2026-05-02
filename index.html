@@ -21,11 +21,17 @@
 }
 
 /* ── BASE ── */
-html{scroll-behavior:smooth;}
+html{
+  scroll-behavior:smooth;
+  overflow-x:hidden;
+  overflow-y:auto;
+}
 body{
   background:var(--bg);color:var(--text);
   font-family:'Geist',sans-serif;
   overflow-x:hidden;
+  overflow-y:auto;
+  min-height:100vh;
 }
 
 /* Grain overlay */
@@ -97,11 +103,10 @@ nav{
   z-index:0;pointer-events:none;
   transition:filter 1.2s ease;
 }
-#globe-canvas.home-mode{
-  filter:brightness(0.9);
-}
 #globe-canvas.home-mode{filter:brightness(0.55);}
 #globe-canvas.map-mode{filter:brightness(1.1);pointer-events:auto;}
+/* Disable canvas interaction when user scrolled to history/contact */
+body.past-globe #globe-canvas{pointer-events:none !important;}
 
 /* ── HOME OVERLAY ── */
 #home-overlay{
@@ -422,7 +427,7 @@ nav{
   font-variant-numeric:tabular-nums;white-space:nowrap;
 }
 .right-section{border-top:1px solid var(--border);padding:10px 16px;flex-shrink:0;}
-.right-section-title{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:6px;}
+.right-section-title{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:#ffffff;margin-bottom:6px;}
 .wave-row{display:flex;align-items:center;justify-content:space-between;}
 .wave-prayer{font-size:13px;font-weight:600;color:var(--gold);}
 .wave-direction{font-size:10px;color:rgba(255,255,255,0.35);}
@@ -437,19 +442,19 @@ nav{
 .countdown-label{font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.1em;}
 .today-num{font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;}
 .adhan-total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.adhan-total-label{font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;}
+.adhan-total-label{font-size:9px;color:#ffffff;text-transform:uppercase;letter-spacing:0.1em;}
 .adhan-total-val{font-size:13px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;}
 .adhan-bar-wrap{width:100%;height:10px;background:rgba(255,255,255,0.1);border-radius:5px;overflow:hidden;margin-bottom:6px;border:1px solid rgba(255,255,255,0.08);}
 .adhan-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#00bcd4 0%,#ffd700 100%);border-radius:4px;transition:width 1s ease;min-width:2px;}
-.adhan-pct{font-size:10px;color:rgba(255,255,255,0.35);text-align:right;margin-bottom:10px;font-variant-numeric:tabular-nums;}
+.adhan-pct{font-size:10px;color:#ffffff;text-align:right;margin-bottom:10px;font-variant-numeric:tabular-nums;}
 .adhan-stats-row{display:flex;justify-content:space-between;gap:4px;margin-bottom:8px;}
 .adhan-stat{flex:1;text-align:center;}
 .adhan-stat-mid{border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);}
 .adhan-stat-val{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:2px;}
-.adhan-stat-lbl{font-size:8px;color:rgba(255,255,255,0.3);line-height:1.3;}
+.adhan-stat-lbl{font-size:8px;color:#ffffff;line-height:1.3;}
 .adhan-done{color:#4ade80;}
-.adhan-live{color:#f87171;animation:pulse-live 1.5s ease-in-out infinite;}
-.adhan-upcoming{color:rgba(255,255,255,0.5);}
+.adhan-live{color:#fb923c;animation:pulse-live 1.5s ease-in-out infinite;}
+.adhan-upcoming{color:#ffffff;}
 .adhan-reset{font-size:8px;color:rgba(255,255,255,0.2);text-align:center;margin-top:2px;}
 @keyframes pulse-live{0%,100%{opacity:1;}50%{opacity:0.5;}}
 .today-sub{font-size:9px;color:rgba(255,255,255,0.35);margin-top:6px;line-height:1.6;}
@@ -474,17 +479,21 @@ nav{
 /* ── SCROLLABLE SECTIONS ── */
 #scroll-sections{
   position:relative;z-index:10;
-  pointer-events:none; /* don't block globe on desktop */
+  pointer-events:auto;
+}
+/* Globe placeholder — no pointer events so globe behind receives mouse */
+#live-map-section{
+  height:100vh;
+  pointer-events:none;
+}
+#history, #contact, footer{
+  pointer-events:all;
+  position:relative;
+  z-index:20;
 }
 @media(max-width:768px){
   #scroll-sections{pointer-events:auto;}
   #mobile-stats{pointer-events:auto;}
-}
-
-/* Live Map section — full viewport height placeholder */
-#live-map-section{
-  height:100vh;
-  pointer-events:none;
 }
 
 /* History Section */
@@ -739,18 +748,18 @@ footer{
   display:none;
   position:fixed;bottom:32px;left:50%;transform:translateX(-50%);
   z-index:400;pointer-events:none;
-  flex-direction:column;align-items:center;gap:8px;
-  background:rgba(0,0,0,0.6);
-  backdrop-filter:blur(16px);
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:12px;
-  padding:14px 20px;
+  background:rgba(0,0,0,0.45);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:20px;
+  padding:7px 18px;
   transition:opacity 0.5s ease;
+  white-space:nowrap;
 }
 #mobile-touch-hint.fade-out{opacity:0;}
 .mobile-touch-row{display:flex;align-items:center;gap:10px;}
 .mobile-touch-icon{font-size:16px;}
-.mobile-touch-text{font-size:11px;color:rgba(255,255,255,0.6);letter-spacing:0.06em;}
+.mobile-touch-text{font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:0.08em;}
 
 /* Mobile stats page */
 #mobile-stats{
@@ -821,8 +830,8 @@ footer{
   #panel-left,#panel-right{display:none !important;}
   #zoom-hint{display:none !important;}
 
-  /* Show mobile stats section */
-  #mobile-stats{display:block;}
+  /* Show mobile stats only when in map mode */
+  body.map-active #mobile-stats{display:block;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
   #mobile-live-badge{display:none;}
   #mobile-touch-hint{display:none;}
@@ -959,18 +968,7 @@ footer{
 
 <!-- Mobile Touch Hints -->
 <div id="mobile-touch-hint">
-  <div class="mobile-touch-row">
-    <span class="mobile-touch-icon">👆</span>
-    <span class="mobile-touch-text">Drag to rotate</span>
-  </div>
-  <div class="mobile-touch-row">
-    <span class="mobile-touch-icon">🤏</span>
-    <span class="mobile-touch-text">Pinch to zoom</span>
-  </div>
-  <div class="mobile-touch-row">
-    <span class="mobile-touch-icon">👇</span>
-    <span class="mobile-touch-text">Scroll for live stats</span>
-  </div>
+  <span class="mobile-touch-text">Drag to rotate &nbsp;·&nbsp; Pinch to zoom &nbsp;·&nbsp; Scroll for live stats</span>
 </div>
 
 <!-- Globe Canvas -->
@@ -997,8 +995,8 @@ footer{
   <div class="nav-links" id="nav-links">
     <a id="nav-about" class="active" onclick="goHome();closeMobileMenu()">About</a>
     <a id="nav-map" onclick="enterMap();closeMobileMenu()">Live Map</a>
-    <a href="#history" onclick="enterMap();closeMobileMenu()">History</a>
-    <a href="#contact" onclick="enterMap();closeMobileMenu()">Contact</a>
+    <a onclick="enterMap();closeMobileMenu();setTimeout(()=>{document.getElementById('history').scrollIntoView({behavior:'smooth'});},mapMode?50:800)">History</a>
+    <a onclick="enterMap();closeMobileMenu();setTimeout(()=>{document.getElementById('contact').scrollIntoView({behavior:'smooth'});},mapMode?50:800)">Contact</a>
   </div>
   <div class="nav-right">
     <div class="nav-utc" id="utc-clock">UTC 00:00:00</div>
@@ -1123,7 +1121,7 @@ footer{
 
     <!-- Total possible -->
     <div class="adhan-total-row">
-      <span class="adhan-total-label">Total calls today</span>
+      <span class="adhan-total-label">TOTAL CALLS TODAY <span style="font-size:7px;font-weight:400;text-transform:lowercase;letter-spacing:0.05em;opacity:0.8;">since first Fajr</span></span>
       <span class="adhan-total-val" id="adhan-total">—</span>
     </div>
 
@@ -1149,7 +1147,7 @@ footer{
       </div>
     </div>
 
-    <div class="adhan-reset">Resets daily at the first Fajr on Earth</div>
+
   </div>
 </div>
 
@@ -1220,7 +1218,13 @@ footer{
         <span>-180°</span><span>-90°</span><span>0°</span><span>+90°</span><span>+180°</span>
       </div>
       <div class="cov-bar-wrap"><canvas id="m-cov-canvas" width="335" height="36"></canvas></div>
-    </div>
+      <div class="cov-legend">
+        <span class="cov-leg"><span class="cov-dot" style="background:#4466ff"></span>Fajr</span>
+        <span class="cov-leg"><span class="cov-dot" style="background:#ffdd00"></span>Dhuhr</span>
+        <span class="cov-leg"><span class="cov-dot" style="background:#ff7700"></span>Asr</span>
+        <span class="cov-leg"><span class="cov-dot" style="background:#ff2200"></span>Maghrib</span>
+        <span class="cov-leg"><span class="cov-dot" style="background:#cc44ff"></span>Isha</span>
+      </div>
   </div>
 
   <!-- HISTORY -->
@@ -1508,8 +1512,12 @@ function enterMap(){
     }
   }, 1400);
 
+  // Show mobile stats
+  document.body.classList.add('map-active');
+
   // Enable scroll
   document.body.style.overflow = 'auto';
+  document.documentElement.style.overflow = 'auto';
 
   // Calculate adhan stats immediately so panels show data right away
   setTimeout(()=>{
@@ -1543,7 +1551,23 @@ window.addEventListener('scroll', ()=>{
     hint.style.opacity='0';
     if(vt)vt.style.display='none';
     if(flatView==='flat') switchView('globe');
-    // Don't hide mobile-stats - CSS handles it
+    // mobile-stats visibility handled by CSS
+  }
+
+  // Disable globe canvas interaction when scrolled to history/contact
+  if(window.innerWidth>768){
+    document.body.classList.toggle('past-globe', !inMap);
+  }
+
+  // Fade calling-now badge on mobile when scrolled off globe
+  if(window.innerWidth<=768){
+    const badge=document.getElementById('mobile-live-badge');
+    if(badge){
+      const scrolledPastGlobe=window.scrollY>window.innerHeight*0.5;
+      badge.style.transition='opacity 0.3s ease';
+      badge.style.opacity=scrolledPastGlobe?'0':'1';
+      badge.style.pointerEvents=scrolledPastGlobe?'none':'auto';
+    }
   }
 });
 
@@ -1561,7 +1585,8 @@ function goHome(){
   canvas.classList.remove('map-mode');
   switchView('globe');
   const vt2=document.getElementById('view-toggle'); if(vt2)vt2.style.display='none';
-  const ms2=document.getElementById('mobile-stats'); if(ms2)ms2.style.display='none';
+  document.body.classList.remove('map-active');
+  // mobile-stats hidden via CSS when not in mapMode
 
   document.getElementById('panel-left').classList.remove('visible');
   document.getElementById('panel-right').classList.remove('visible');
@@ -1575,7 +1600,8 @@ function goHome(){
   const th=document.getElementById('mobile-touch-hint');
   th.style.display='none';th.classList.remove('fade-out');
 
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow = window.innerWidth<=768 ? 'hidden' : 'auto';
+  document.documentElement.style.overflow = window.innerWidth<=768 ? 'hidden' : 'auto';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1652,15 +1678,20 @@ function activePrayer(times,lh){
 // ── THREE.JS GLOBE ───────────────────────────────────────────
 let scene,camera,renderer,globe,dotMesh,dotGeo;
 let rotY=0,rotX=0.25,dragging=false,prevM={x:0,y:0},autoRot=true;
-let targetZ=4.2;const DEFAULT_Z=4.2;
+const isMob=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+let targetZ=isMob?5.2:4.2;
+const DEFAULT_Z=isMob?5.2:4.2;
 const R=1.6;
 
 function initGlobe(){
   scene=new THREE.Scene();
   const W=window.innerWidth, H=window.innerHeight-56;
   camera=new THREE.PerspectiveCamera(45,W/H,0.1,100);
-  camera.position.z=4.2;
-  const isMobileDevice=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isMobileDevice=isMob;
+  // On mobile, pull camera back so the full globe fits within the viewport
+  const initZ = isMobileDevice ? 5.2 : 4.2;
+  camera.position.z = initZ;
+  targetZ = initZ;
   // Safari requires specific WebGL context attributes
   const canvas = document.getElementById('globe-canvas');
   // Test WebGL support first
@@ -1705,12 +1736,12 @@ function initGlobe(){
     rotY+=(e.clientX-prevM.x)*.005;rotX+=(e.clientY-prevM.y)*.005;
     rotX=Math.max(-1.4,Math.min(1.4,rotX));prevM={x:e.clientX,y:e.clientY};
   });
+  // Wheel zoom — passive:true so page scroll is never blocked
   cvs.addEventListener('wheel',e=>{
     if(!mapMode)return;
-    e.preventDefault();
     targetZ=Math.max(1.9,Math.min(8.0,targetZ+e.deltaY*0.002));
     if(targetZ<DEFAULT_Z-0.1)autoRot=false;
-  },{passive:false});
+  },{passive:true});
   cvs.addEventListener('click',e=>{
     if(!mapMode||!allMosques.length||!dotGeo)return;
     const rect=cvs.getBoundingClientRect();
@@ -2022,22 +2053,6 @@ function updateMobileStats(calling,pC,activeMosques){
     </div>`;
   }).join('');
 
-  // Next wave
-  if(nextWaveCache){
-    const elapsed=(Date.now()-nextWaveCache.calcTime)/3600000;
-    const diff=Math.max(0,nextWaveCache.diffAtCalc-elapsed);
-    const secs=Math.round(diff*3600);
-    const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;
-    const PC_R2={fajr:'#818cf8',dhuhr:'#fbbf24',asr:'#ff7700',maghrib:'#ff2200',isha:'#cc44ff'};
-    const wp=document.getElementById('m-wave-prayer');
-    const wc=document.getElementById('m-wave-country');
-    const wt=document.getElementById('m-wave-time');
-    const wm=document.getElementById('m-wave-count');
-    if(wp){wp.textContent=nextWaveCache.prayer.toUpperCase();wp.style.color=PC_R2[nextWaveCache.prayer]||'var(--gold)';}
-    if(wc)wc.textContent=nextWaveCache.country;
-    if(wt)wt.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    if(wm)wm.textContent=`~${nextWaveCache.mosqueCount.toLocaleString()} mosques incoming`;
-  }
 }
 
 // Update mobile badge every second
@@ -2261,24 +2276,26 @@ function updateRightPanel(activeMosques){
 
 }
 
-// ── NEXT WAVE CACHE (removed) ─────────────────────────────────
+
 
 function tickClock(){
   const n=new Date();
   const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const dayName=days[n.getUTCDay()];
-  const date=n.getUTCDate();
-  const month=months[n.getUTCMonth()];
-  const year=n.getUTCFullYear();
-  const timeStr=`${String(n.getUTCHours()).padStart(2,'0')}:${String(n.getUTCMinutes()).padStart(2,'0')}:${String(n.getUTCSeconds()).padStart(2,'0')}`;
-  document.getElementById('utc-clock').textContent=`${dayName}, ${date} ${month} ${year} · UTC ${timeStr}`;
+  const dayName=days[n.getDay()];
+  const date=n.getDate();
+  const month=months[n.getMonth()];
+  const year=n.getFullYear();
+  const lh=n.getHours(),lm=n.getMinutes(),ls=n.getSeconds();
+  const ap=lh<12?'AM':'PM',hh=lh%12||12;
+  const timeStr=`${String(hh).padStart(2,'0')}:${String(lm).padStart(2,'0')}:${String(ls).padStart(2,'0')} ${ap}`;
+  document.getElementById('utc-clock').textContent=`${dayName}, ${date} ${month} ${year} · ${timeStr}`;
   const mh=(n.getUTCHours()+3)%24,mm=n.getUTCMinutes(),ms=n.getUTCSeconds();
-  const ap=mh<12?'AM':'PM',hh=mh%12||12;
+  const map=mh<12?'AM':'PM',mhh=mh%12||12;
   const el=document.getElementById('makkah-time');
-  if(el)el.textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ms).padStart(2,'0')} ${ap}`;
+  if(el)el.textContent=`${String(mhh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ms).padStart(2,'0')} ${map}`;
   const mel=document.getElementById('m-makkah-time');
-  if(mel)mel.textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ms).padStart(2,'0')} ${ap}`;
+  if(mel)mel.textContent=`${String(mhh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ms).padStart(2,'0')} ${map}`;
 
   // Update hero journey widget
   const hTotal=document.getElementById('hero-total');
@@ -2486,8 +2503,11 @@ async function main(){
   }
   initBars();
 
-  // Body locked on home
-  document.body.style.overflow='hidden';
+  // Body locked on home — mobile only (desktop always scrollable)
+  if(window.innerWidth<=768){
+    document.body.style.overflow='hidden';
+    document.documentElement.style.overflow='hidden';
+  }
 
   const total=typeof MOSQUES_OSM!=='undefined'?MOSQUES_OSM.length:0;
   if(total===0)return;
