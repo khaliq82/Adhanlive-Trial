@@ -1538,6 +1538,15 @@ function enterMap(){
   if(mapMode) return;
   mapMode = true;
 
+  // Trigger intro spin on first visit only
+  if(!_introFired){
+    _introFired=true;
+    _introSpinning=true;
+    _introStart=Date.now();
+    _introStartRotY=rotY;
+    autoRot=false;
+  }
+
   document.getElementById('nav-about').classList.remove('active');
   document.getElementById('nav-map').classList.add('active');
 
@@ -1750,7 +1759,8 @@ function activePrayer(times,lh){
 
 // ── THREE.JS GLOBE ───────────────────────────────────────────
 let scene,camera,renderer,globe,dotMesh,dotGeo;
-let rotY=0,rotX=0.25,dragging=false,prevM={x:0,y:0},autoRot=true;
+let rotY=0,rotX=0.25,dragging=false,prevM={x:0,y:0},autoRot=false;
+let _introSpinning=false,_introStart=0,_introStartRotY=0,_introFired=false;
 const isMob=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 let targetZ=isMob?6.5:4.2;const DEFAULT_Z=isMob?6.5:4.2;
 const R=1.6;
@@ -1922,7 +1932,18 @@ function initGlobe(){
     requestAnimationFrame(anim);
     camera.position.z+=(targetZ-camera.position.z)*0.08;
     if(Math.abs(camera.position.z-DEFAULT_Z)<0.05&&!dragging)autoRot=true;
-    if(autoRot)rotY+=.0008;
+    // Intro spin: first load only
+    if(_introSpinning){
+      const elapsed=(Date.now()-_introStart)/1000;
+      const dur=1.5;
+      const t=Math.min(elapsed/dur,1);
+      // Ease out cubic
+      const eased=1-(1-t)*(1-t)*(1-t);
+      rotY=_introStartRotY+Math.PI*eased;
+      if(t>=1){_introSpinning=false;autoRot=true;}
+    } else if(autoRot){
+      rotY+=0.003;
+    }
     globe.rotation.set(rotX,rotY,0);
     if(dotMesh)dotMesh.rotation.set(rotX,rotY,0);
     // Only recalculate dot sizes when zoom changes (not every frame!)
@@ -2993,7 +3014,8 @@ if(flatCanvas){
 // ── MOBILE GLOBE CARD ─────────────────────────────────────────
 let mScene,mCamera,mRenderer,mGlobe,mDotMesh,mDotGeo;
 let mRotX=0.25,mRotY=0,mTargetZ=3.5,mDragging=false,mPrevT={x:0,y:0};
-let mAutoRot=true;
+let mAutoRot=false;
+let _mIntroSpinning=false,_mIntroStart=0,_mIntroStartRotY=0;
 let mPinchStartDist=0,mPinchStartZ=0;
 let _mTapStart={x:0,y:0,t:0};
 
@@ -3068,7 +3090,16 @@ function initMobileGlobe(){
   (function anim(){
     requestAnimationFrame(anim);
     mCamera.position.z+=(mTargetZ-mCamera.position.z)*0.08;
-    if(mAutoRot)mRotY+=0.0008;
+    if(_mIntroSpinning){
+      const el=(Date.now()-_mIntroStart)/1000;
+      const dur=1.5;
+      const t=Math.min(el/dur,1);
+      const eased=1-(1-t)*(1-t)*(1-t);
+      mRotY=_mIntroStartRotY+Math.PI*eased;
+      if(t>=1){_mIntroSpinning=false;mAutoRot=true;}
+    } else if(mAutoRot){
+      mRotY+=0.003;
+    }
     mGlobe.rotation.set(mRotX,mRotY,0);
     if(mDotMesh)mDotMesh.rotation.set(mRotX,mRotY,0);
     mRenderer.render(mScene,mCamera);
@@ -3162,6 +3193,12 @@ function initMobileGlobe(){
     const hint=document.getElementById('mobile-globe-hint');
     if(hint)hint.classList.add('hidden');
   }
+
+  // Trigger intro spin
+  _mIntroSpinning=true;
+  _mIntroStart=Date.now();
+  _mIntroStartRotY=mRotY;
+  mAutoRot=false;
 
   // Handle resize
   window.addEventListener('resize',()=>{
