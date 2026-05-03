@@ -839,9 +839,7 @@ footer{
   }
   body.map-active #mobile-stats{display:block;}
   body.map-active #mobile-globe-card{display:block !important;}
-  /* Card renders in background even on home page so it's ready instantly */
-  #mobile-globe-card{display:block;visibility:hidden;position:fixed;top:-9999px;}
-  body.map-active #mobile-globe-card{display:block !important;visibility:visible;position:relative;top:auto;}
+  body.map-active #mobile-globe-card{display:block !important;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
   #mobile-touch-hint{display:none !important;}
   #mobile-touch-hint{display:none;}
@@ -1003,7 +1001,7 @@ footer{
     overflow:hidden;
     border:1px solid rgba(0,212,255,0.25);
     box-shadow:0 0 24px rgba(0,212,255,0.12), 0 0 60px rgba(0,212,255,0.06), inset 0 0 20px rgba(0,0,0,0.4);
-    background:#000;
+    background:radial-gradient(ellipse at center, #0a1628 0%, #000 70%);
     aspect-ratio:1/1;
     touch-action:none;
     z-index:50;
@@ -1483,6 +1481,19 @@ footer{
 </div>
 
 <script>
+// Preload earth texture immediately so it's browser-cached when Three.js requests it
+(function(){
+  const img=new Image();
+  img.onload=function(){
+    // Once image is cached, pre-load as Three.js texture too
+    if(typeof THREE!=='undefined' && !window._earthTex){
+      window._earthTex=new THREE.TextureLoader().load('earth.jpg');
+    }
+  };
+  img.src='earth.jpg';
+  window._earthImgPreload=img;
+})();
+
 // ── MOBILE MENU ──────────────────────────────────────────────
 function toggleMobileMenu(){
   const links=document.getElementById('nav-links');
@@ -2711,7 +2722,7 @@ main();
 
 // Pre-init mobile globe immediately so it's ready when user taps Enter
 if(window.innerWidth<=768){
-  setTimeout(initMobileGlobe, 50);
+  setTimeout(initMobileGlobe, 10);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3043,7 +3054,8 @@ function initMobileGlobe(){
   mRenderer.setSize(size,size);
   mRenderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 
-  const earthTex=new THREE.TextureLoader().load('earth.jpg');
+  // Reuse already-loaded desktop texture — instant, no network request
+  const earthTex = window._earthTex || new THREE.TextureLoader().load('earth.jpg', t=>{ window._earthTex=t; });
   mGlobe=new THREE.Mesh(
     new THREE.SphereGeometry(1,32,32),
     new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x222244),shininess:8,color:new THREE.Color(0xffffff)})
