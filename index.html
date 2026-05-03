@@ -821,8 +821,12 @@ footer{
   #panel-left,#panel-right{display:none !important;}
   #zoom-hint{display:none !important;}
 
-  /* Mobile: canvas always receives touch for drag/pinch */
-  #globe-canvas{pointer-events:auto;}
+  /* Globe canvas on mobile - square for perfect round globe */
+  #globe-canvas{
+    pointer-events:auto;
+    height:auto !important;
+    width:100vw !important;
+  }
   body.map-active #mobile-stats{display:block;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
   #mobile-live-badge{display:none;}
@@ -1704,8 +1708,19 @@ function initGlobe(){
     powerPreference:'low-power',
     failIfMajorPerformanceCaveat:false
   });
-  renderer.setSize(W,H);
+  // On mobile use square canvas so globe is perfectly round
+  const renderH = isMobileDevice ? W : H;
+  renderer.setSize(W, renderH);
   renderer.setPixelRatio(Math.min(devicePixelRatio,isMobileDevice?1:2));
+  if(isMobileDevice){
+    camera.aspect = 1.0; // square = perfect circle
+    camera.updateProjectionMatrix();
+    renderer.domElement.style.height = W + 'px';
+    renderer.domElement.style.width = W + 'px';
+    renderer.domElement.style.position = 'fixed';
+    renderer.domElement.style.top = '56px';
+    renderer.domElement.style.left = '0';
+  }
 
   const earthTex=new THREE.TextureLoader().load('earth.jpg');
   const sphereSegs=isMobileDevice?32:64;
@@ -1790,14 +1805,14 @@ function initGlobe(){
     }
   },{passive:false});
 
-  cvs.addEventListener('click',e=>{
+  function handleGlobeClick(clientX, clientY){
     if(!mapMode||!allMosques.length||!dotGeo)return;
     const rect=cvs.getBoundingClientRect();
-    const mx=(e.clientX-rect.left)/rect.width*2-1;
-    const my=-((e.clientY-rect.top)/rect.height*2-1);
+    const mx=(clientX-rect.left)/rect.width*2-1;
+    const my=-((clientY-rect.top)/rect.height*2-1);
     const raycaster=new THREE.Raycaster();
     raycaster.setFromCamera({x:mx,y:my},camera);
-    raycaster.params.Points={threshold:0.02};
+    raycaster.params.Points={threshold:0.04};
     const hits=raycaster.intersectObject(dotMesh);if(!hits.length)return;
     const sz=dotGeo.attributes.aSize.array;
     const hit=hits.find(h=>sz[h.index]>0);if(!hit)return;
@@ -1805,13 +1820,34 @@ function initGlobe(){
     const now=new Date(),utcH=now.getUTCHours()+now.getUTCMinutes()/60+now.getUTCSeconds()/3600;
     const lh=(utcH+m.tz+48)%24;
     const ap=activePrayer(calcPrayers(m.lat,m.lon,m.tz,now,m.country),lh);
-    if(!ap)return;showPopup(e.clientX,e.clientY,m,ap);
-  });
+    if(!ap)return;showPopup(clientX,clientY,m,ap);
+  }
+  cvs.addEventListener('click',e=>handleGlobeClick(e.clientX,e.clientY));
+  // Tap support for mobile
+  let _tapStart={x:0,y:0,t:0};
+  cvs.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){
+      _tapStart={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()};
+    }
+  },{passive:true,capture:false});
+  cvs.addEventListener('touchend',e=>{
+    if(e.changedTouches.length===1&&Date.now()-_tapStart.t<250){
+      const dx=e.changedTouches[0].clientX-_tapStart.x;
+      const dy=e.changedTouches[0].clientY-_tapStart.y;
+      if(Math.hypot(dx,dy)<10) handleGlobeClick(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+    }
+  },{passive:true,capture:false});
   window.addEventListener('resize',()=>{
     const W2=window.innerWidth,H2=window.innerHeight-56;
-    camera.aspect=W2/H2;
-    camera.updateProjectionMatrix();
-    renderer.setSize(W2,H2);
+    if(isMobileDevice){
+      camera.aspect=1.0;
+      camera.updateProjectionMatrix();
+      renderer.setSize(W2,W2);
+    } else {
+      camera.aspect=W2/H2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(W2,H2);
+    }
   });
   let _lastZoom=0;
   (function anim(){
