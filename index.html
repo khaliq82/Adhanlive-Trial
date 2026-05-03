@@ -1628,6 +1628,18 @@ function enterMap(){
   if(window.innerWidth<=768){
     const mgc=document.getElementById('mobile-globe-card');
     if(mgc)mgc.style.display='block';
+    // Force renderer to resize now that card is visible
+    setTimeout(()=>{
+      if(mRenderer&&mgc){
+        const s=mgc.offsetWidth;
+        if(s>0){
+          mRenderer.setSize(s,s);
+          mCamera.aspect=1;
+          mCamera.updateProjectionMatrix();
+          mRenderer.render(mScene,mCamera);
+        }
+      }
+    },50);
   }
 
   // Enable scroll
