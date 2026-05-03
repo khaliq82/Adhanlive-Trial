@@ -774,6 +774,9 @@ footer{
   #scroll-sections{
     padding-top:72px; /* nav height + breathing space */
   }
+  /* Home overlay covers all sections on mobile */
+  #home-overlay{z-index:650 !important;}
+  #history,#contact{z-index:20 !important;}
   /* Hide view toggle on mobile */
   #view-toggle{display:none !important;}
 
@@ -978,9 +981,6 @@ footer{
 #mobile-globe-card{
   display:none;
 }
-#mobile-globe-badge{
-  display:none;
-}
 @media(max-width:768px){
   /* Hide fixed globe canvas on mobile */
   #globe-canvas{display:none !important;}
@@ -988,26 +988,11 @@ footer{
   /* Hide the 100vh desktop spacer on mobile */
   #live-map-section{display:none !important;}
 
-  /* Badge above the card */
-  #mobile-globe-badge{
-    display:none; /* shown via map-active */
-    width:calc(100% - 32px);
-    margin:0 auto 10px;
-    justify-content:center;
-    background:rgba(0,0,0,0.0);
-    border:none;
-    padding:0;
-    font-size:12px;letter-spacing:0.04em;
-  }
-  body.map-active #mobile-globe-badge{
-    display:flex;
-  }
-
   #mobile-globe-card{
     display:none; /* shown via map-active */
     position:relative;
     width:calc(100% - 32px);
-    margin:0 auto 0;
+    margin:16px auto 0; /* breathing space at top */
     border-radius:20px;
     overflow:hidden;
     border:1px solid rgba(0,212,255,0.25);
@@ -1023,14 +1008,7 @@ footer{
     height:100% !important;
     border-radius:20px;
   }
-  .mgb-dot{
-    width:6px;height:6px;border-radius:50%;
-    background:#00d4ff;
-    animation:pulse-live 1.5s ease-in-out infinite;
-    flex-shrink:0;
-  }
-  .mgb-label{color:rgba(255,255,255,0.7);font-size:11px;}
-  .mgb-count{color:#00d4ff;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;}
+
   #mobile-globe-hint{
     position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
     font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:0.08em;
@@ -1251,11 +1229,6 @@ footer{
 
 <!-- SCROLLABLE SECTIONS -->
 <!-- Mobile Globe Card -->
-<div id="mobile-globe-badge">
-  <span class="mgb-dot"></span>
-  <span class="mgb-label">Calling Now:</span>
-  <span class="mgb-count" id="mgb-count">—</span>
-</div>
 <div id="mobile-globe-card">
   <canvas id="mobile-globe-canvas"></canvas>
   <div id="mobile-globe-hint">Drag · Pinch to zoom</div>
@@ -3101,11 +3074,9 @@ function initMobileGlobe(){
     const slen=Math.min(mSz.length,sz.length);
     const zScale=3.5/Math.max(mCamera.position.z,1.9);
     for(let i=0;i<slen;i++)mSz[i]=sz[i]>0?Math.max(2,2.5*zScale):0;
+    // Sync dot colors/sizes from main renderer
     mDotGeo.attributes.aColor.needsUpdate=true;
     mDotGeo.attributes.aSize.needsUpdate=true;
-    // Sync badge count
-    const badge=document.getElementById('mgb-count');
-    if(badge){const el=document.getElementById('m-calling');if(el)badge.textContent=el.textContent;}
   },1000);
 
   // Touch events — touch-action:none on card does the heavy lifting
