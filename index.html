@@ -995,7 +995,7 @@ footer{
     display:none; /* shown via map-active */
     position:relative;
     width:calc(100% - 32px);
-    margin:76px auto 0; /* 56px nav + 20px gap at top */
+    margin:76px auto 0;
     border-radius:20px;
     overflow:hidden;
     border:1px solid rgba(0,212,255,0.25);
@@ -1022,7 +1022,8 @@ footer{
 
   /* Stats flows directly under globe card */
   #mobile-stats{
-    padding-top:0px;
+    padding-top:4px;
+    border-top:none;
   }
 }
 </style>
@@ -3017,9 +3018,9 @@ function initMobileGlobe(){
     new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x222244),shininess:8,color:new THREE.Color(0xffffff)})
   );
   mScene.add(mGlobe);
-  mScene.add(new THREE.AmbientLight(0xffffff,0.75));
-  const sun=new THREE.DirectionalLight(0xffffff,0.9);sun.position.set(5,3,5);mScene.add(sun);
-  const sun2=new THREE.DirectionalLight(0xffffff,0.3);sun2.position.set(-5,-2,3);mScene.add(sun2);
+  mScene.add(new THREE.AmbientLight(0xffffff,0.55));
+  const sun=new THREE.DirectionalLight(0xffffff,0.7);sun.position.set(5,3,5);mScene.add(sun);
+  const sun2=new THREE.DirectionalLight(0xffffff,0.2);sun2.position.set(-5,-2,3);mScene.add(sun2);
   // Atmosphere
   mScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.02,32,32),new THREE.ShaderMaterial({
     vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
