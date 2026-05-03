@@ -839,6 +839,9 @@ footer{
   }
   body.map-active #mobile-stats{display:block;}
   body.map-active #mobile-globe-card{display:block !important;}
+  /* Card renders in background even on home page so it's ready instantly */
+  #mobile-globe-card{display:block;visibility:hidden;position:fixed;top:-9999px;}
+  body.map-active #mobile-globe-card{display:block !important;visibility:visible;position:relative;top:auto;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
   #mobile-touch-hint{display:none !important;}
   #mobile-touch-hint{display:none;}
@@ -1800,7 +1803,8 @@ function initGlobe(){
     renderer.domElement.style.left = '0';
   }
 
-  const earthTex=new THREE.TextureLoader().load('earth.jpg');
+  if(!window._earthTex) window._earthTex=new THREE.TextureLoader().load('earth.jpg');
+  const earthTex=window._earthTex;
   const sphereSegs=isMobileDevice?32:64;
   globe=new THREE.Mesh(new THREE.SphereGeometry(R,sphereSegs,sphereSegs),new THREE.MeshPhongMaterial({
     map:earthTex,specular:new THREE.Color(0x111122),shininess:5,color:new THREE.Color(0x888888),
@@ -2707,7 +2711,7 @@ main();
 
 // Pre-init mobile globe immediately so it's ready when user taps Enter
 if(window.innerWidth<=768){
-  setTimeout(initMobileGlobe, 300);
+  setTimeout(initMobileGlobe, 50);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3045,9 +3049,9 @@ function initMobileGlobe(){
     new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x222244),shininess:8,color:new THREE.Color(0xffffff)})
   );
   mScene.add(mGlobe);
-  mScene.add(new THREE.AmbientLight(0xffffff,0.55));
-  const sun=new THREE.DirectionalLight(0xffffff,0.7);sun.position.set(5,3,5);mScene.add(sun);
-  const sun2=new THREE.DirectionalLight(0xffffff,0.2);sun2.position.set(-5,-2,3);mScene.add(sun2);
+  mScene.add(new THREE.AmbientLight(0xffffff,0.4));
+  const sun=new THREE.DirectionalLight(0xffffff,0.55);sun.position.set(5,3,5);mScene.add(sun);
+  const sun2=new THREE.DirectionalLight(0xffffff,0.15);sun2.position.set(-5,-2,3);mScene.add(sun2);
   // Atmosphere
   mScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.02,32,32),new THREE.ShaderMaterial({
     vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
