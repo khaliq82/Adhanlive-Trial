@@ -828,6 +828,7 @@ footer{
     width:100vw !important;
   }
   body.map-active #mobile-stats{display:block;}
+  body.map-active #mobile-globe-card{display:block !important;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
   #mobile-live-badge{display:none;}
   #mobile-touch-hint{display:none;}
@@ -968,6 +969,61 @@ footer{
 .view-btn svg{width:14px;height:14px;}
 .view-btn.active{background:rgba(255,255,255,0.12);color:#fff;}
 .view-btn:hover:not(.active){color:rgba(255,255,255,0.8);}
+
+/* ── MOBILE GLOBE CARD ── */
+#mobile-globe-card{
+  display:none;
+}
+@media(max-width:768px){
+  /* Hide fixed globe canvas on mobile */
+  #globe-canvas{display:none !important;}
+
+  #mobile-globe-card{
+    display:block;
+    position:relative;
+    width:calc(100% - 32px);
+    margin:16px auto 0;
+    border-radius:20px;
+    overflow:hidden;
+    border:1px solid rgba(0,212,255,0.25);
+    box-shadow:0 0 24px rgba(0,212,255,0.12), 0 0 60px rgba(0,212,255,0.06), inset 0 0 20px rgba(0,0,0,0.4);
+    background:#000;
+    aspect-ratio:1/1;
+    touch-action:none;
+    z-index:50;
+  }
+  #mobile-globe-canvas{
+    display:block;
+    width:100% !important;
+    height:100% !important;
+    border-radius:20px;
+  }
+  #mobile-globe-badge{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,0.55);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:20px;padding:5px 14px;
+    display:flex;align-items:center;gap:6px;
+    white-space:nowrap;z-index:10;
+    font-size:11px;letter-spacing:0.04em;
+  }
+  .mgb-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:#00d4ff;
+    animation:pulse-live 1.5s ease-in-out infinite;
+    flex-shrink:0;
+  }
+  .mgb-label{color:rgba(255,255,255,0.7);font-size:11px;}
+  .mgb-count{color:#00d4ff;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;}
+  #mobile-globe-hint{
+    position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+    font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:0.08em;
+    white-space:nowrap;pointer-events:none;
+    transition:opacity 1s ease;
+  }
+  #mobile-globe-hint.hidden{opacity:0;}
+}
 </style>
 </head>
 <body>
@@ -1174,6 +1230,17 @@ footer{
 <div id="zoom-hint">Scroll to zoom · Drag to rotate · Click a dot for details</div>
 
 <!-- SCROLLABLE SECTIONS -->
+<!-- Mobile Globe Card -->
+<div id="mobile-globe-card">
+  <canvas id="mobile-globe-canvas"></canvas>
+  <div id="mobile-globe-badge">
+    <span class="mgb-dot"></span>
+    <span class="mgb-label">Calling Now:</span>
+    <span class="mgb-count" id="mgb-count">—</span>
+  </div>
+  <div id="mobile-globe-hint">Drag · Pinch to zoom</div>
+</div>
+
 <div id="scroll-sections">
   <!-- Live Map placeholder — 100vh so history starts below -->
   <div id="live-map-section"></div>
@@ -1527,6 +1594,14 @@ function enterMap(){
   }, 1400);
 
   document.body.classList.add('map-active');
+
+  // Show & init mobile globe card
+  if(window.innerWidth<=768){
+    const mgc=document.getElementById('mobile-globe-card');
+    if(mgc)mgc.style.display='block';
+    if(!mRenderer) setTimeout(initMobileGlobe, 200);
+  }
+
   // Enable scroll
   document.body.style.overflow = 'auto';
 
@@ -1606,6 +1681,9 @@ function goHome(){
   th.style.display='none';th.classList.remove('fade-out');
 
   document.body.classList.remove('map-active');
+  // Hide mobile globe card
+  const mgc2=document.getElementById('mobile-globe-card');
+  if(mgc2)mgc2.style.display='none';
   document.body.style.overflow = window.innerWidth<=768 ? 'hidden' : 'auto';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -2921,6 +2999,172 @@ if(flatCanvas){
   window.addEventListener('resize', ()=>{ resizeFlat(); if(flatView==='flat') drawFlat(); });
 }
 // ══════════════════════════════════════════════════════════════
+
+// ── MOBILE GLOBE CARD ─────────────────────────────────────────
+let mScene,mCamera,mRenderer,mGlobe,mDotMesh,mDotGeo;
+let mRotX=0.25,mRotY=0,mTargetZ=3.5,mDragging=false,mPrevT={x:0,y:0};
+let mAutoRot=true;
+let mPinchStartDist=0,mPinchStartZ=0;
+let _mTapStart={x:0,y:0,t:0};
+
+function initMobileGlobe(){
+  if(window.innerWidth>768)return;
+  const card=document.getElementById('mobile-globe-card');
+  const cvs=document.getElementById('mobile-globe-canvas');
+  if(!card||!cvs)return;
+
+  const size=card.offsetWidth;
+  mScene=new THREE.Scene();
+  mCamera=new THREE.PerspectiveCamera(45,1,0.1,100);
+  mCamera.position.z=mTargetZ;
+
+  mRenderer=new THREE.WebGLRenderer({canvas:cvs,antialias:false,alpha:true,powerPreference:'low-power'});
+  mRenderer.setSize(size,size);
+  mRenderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+
+  const earthTex=new THREE.TextureLoader().load('earth.jpg');
+  mGlobe=new THREE.Mesh(
+    new THREE.SphereGeometry(1,32,32),
+    new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x111122),shininess:5,color:new THREE.Color(0x888888)})
+  );
+  mScene.add(mGlobe);
+  mScene.add(new THREE.AmbientLight(0xffffff,0.35));
+  const sun=new THREE.DirectionalLight(0xffffff,0.5);sun.position.set(5,3,5);mScene.add(sun);
+  // Atmosphere
+  mScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.02,32,32),new THREE.ShaderMaterial({
+    vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec3 vN;void main(){float f=pow(1.-abs(dot(vN,vec3(0,0,1))),3.);gl_FragColor=vec4(.3,.6,1.,f*.2);}`,
+    transparent:true,side:THREE.FrontSide,depthWrite:false
+  })));
+
+  // Build dots from allMosques
+  function buildMDots(){
+    if(!allMosques||!allMosques.length)return;
+    if(mDotMesh)mScene.remove(mDotMesh);
+    const pos=new Float32Array(allMosques.length*3),col=new Float32Array(allMosques.length*3),sz=new Float32Array(allMosques.length);
+    allMosques.forEach((m,i)=>{const v=ll2v(m.lat,m.lon,1.01);pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;col[i*3]=0;col[i*3+1]=0;col[i*3+2]=0;sz[i]=0;});
+    mDotGeo=new THREE.BufferGeometry();
+    mDotGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    mDotGeo.setAttribute('aColor',new THREE.Float32BufferAttribute(col,3));
+    mDotGeo.setAttribute('aSize',new THREE.Float32BufferAttribute(sz,1));
+    const mat=new THREE.ShaderMaterial({
+      uniforms:{pixelRatio:{value:mRenderer.getPixelRatio()}},
+      vertexShader:`attribute vec3 aColor;attribute float aSize;varying vec3 vC;uniform float pixelRatio;void main(){vC=aColor;gl_PointSize=aSize*pixelRatio;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`varying vec3 vC;void main(){if(length(gl_PointCoord-.5)>.5)discard;gl_FragColor=vec4(vC,1.);}`,
+      transparent:true,depthWrite:false
+    });
+    mDotMesh=new THREE.Points(mDotGeo,mat);
+    mScene.add(mDotMesh);
+  }
+  // Wait for mosques to load
+  const waitMosques=setInterval(()=>{if(allMosques&&allMosques.length){buildMDots();clearInterval(waitMosques);}},500);
+
+  // Animation loop
+  (function anim(){
+    requestAnimationFrame(anim);
+    mCamera.position.z+=(mTargetZ-mCamera.position.z)*0.08;
+    if(mAutoRot)mRotY+=0.0008;
+    mGlobe.rotation.set(mRotX,mRotY,0);
+    if(mDotMesh)mDotMesh.rotation.set(mRotX,mRotY,0);
+    mRenderer.render(mScene,mCamera);
+  })();
+
+  // Sync dots with main globe every second
+  setInterval(()=>{
+    if(!mDotGeo||!dotGeo)return;
+    const mCol=mDotGeo.attributes.aColor.array;
+    const mSz=mDotGeo.attributes.aSize.array;
+    const col=dotGeo.attributes.aColor.array;
+    const sz=dotGeo.attributes.aSize.array;
+    const len=Math.min(mCol.length,col.length);
+    for(let i=0;i<len;i++)mCol[i]=col[i];
+    const slen=Math.min(mSz.length,sz.length);
+    const zScale=3.5/Math.max(mCamera.position.z,1.9);
+    for(let i=0;i<slen;i++)mSz[i]=sz[i]>0?Math.max(2,2.5*zScale):0;
+    mDotGeo.attributes.aColor.needsUpdate=true;
+    mDotGeo.attributes.aSize.needsUpdate=true;
+    // Sync badge count
+    const badge=document.getElementById('mgb-count');
+    if(badge){const el=document.getElementById('m-calling');if(el)badge.textContent=el.textContent;}
+  },1000);
+
+  // Touch events — touch-action:none on card does the heavy lifting
+  card.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    mAutoRot=false;
+    if(e.touches.length===1){
+      mDragging=true;
+      mPrevT={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      _mTapStart={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()};
+    } else if(e.touches.length===2){
+      mDragging=false;
+      mPinchStartDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      mPinchStartZ=mTargetZ;
+    }
+  },{passive:false});
+
+  card.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(e.touches.length===1&&mDragging){
+      mRotY+=(e.touches[0].clientX-mPrevT.x)*0.006;
+      mRotX+=(e.touches[0].clientY-mPrevT.y)*0.006;
+      mRotX=Math.max(-1.4,Math.min(1.4,mRotX));
+      mPrevT={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    } else if(e.touches.length===2){
+      const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      mTargetZ=Math.max(1.5,Math.min(6.0,mPinchStartZ*(mPinchStartDist/dist)));
+    }
+  },{passive:false});
+
+  card.addEventListener('touchend',e=>{
+    if(e.touches.length===0){
+      mDragging=false;
+      // Tap to show mosque popup
+      if(Date.now()-_mTapStart.t<250){
+        const dx=e.changedTouches[0].clientX-_mTapStart.x;
+        const dy=e.changedTouches[0].clientY-_mTapStart.y;
+        if(Math.hypot(dx,dy)<10&&mDotGeo){
+          const rect=cvs.getBoundingClientRect();
+          const mx=(e.changedTouches[0].clientX-rect.left)/rect.width*2-1;
+          const my=-((e.changedTouches[0].clientY-rect.top)/rect.height*2-1);
+          const ray=new THREE.Raycaster();ray.setFromCamera({x:mx,y:my},mCamera);
+          ray.params.Points={threshold:0.05};
+          const hits=ray.intersectObject(mDotMesh);
+          if(hits.length){
+            const sz=mDotGeo.attributes.aSize.array;
+            const hit=hits.find(h=>sz[h.index]>0);
+            if(hit){
+              const m=allMosques[hit.index];
+              if(m){
+                const now=new Date(),utcH=now.getUTCHours()+now.getUTCMinutes()/60+now.getUTCSeconds()/3600;
+                const lh=(utcH+m.tz+48)%24;
+                const ap=activePrayer(calcPrayers(m.lat,m.lon,m.tz,now,m.country),lh);
+                if(ap)showPopup(e.changedTouches[0].clientX,e.changedTouches[0].clientY,m,ap);
+              }
+            }
+          }
+        }
+      }
+    } else if(e.touches.length===1){
+      mPrevT={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      mDragging=true;
+    }
+  },{passive:false});
+
+  // Auto-hide hint after 4s
+  setTimeout(()=>{
+    const hint=document.getElementById('mobile-globe-hint');
+    if(hint)hint.classList.add('hidden');
+  },4000);
+
+  // Handle resize
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth>768)return;
+    const s=card.offsetWidth;
+    mRenderer.setSize(s,s);
+  });
+}
+
 </script>
 </body>
 </html>
