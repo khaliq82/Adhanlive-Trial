@@ -821,7 +821,8 @@ footer{
   #panel-left,#panel-right{display:none !important;}
   #zoom-hint{display:none !important;}
 
-  /* Show mobile stats only in map mode */
+  /* Mobile: canvas always receives touch for drag/pinch */
+  #globe-canvas{pointer-events:auto;}
   body.map-active #mobile-stats{display:block;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
   #mobile-live-badge{display:none;}
@@ -1679,14 +1680,14 @@ function activePrayer(times,lh){
 let scene,camera,renderer,globe,dotMesh,dotGeo;
 let rotY=0,rotX=0.25,dragging=false,prevM={x:0,y:0},autoRot=true;
 const isMob=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-let targetZ=isMob?5.2:4.2;const DEFAULT_Z=isMob?5.2:4.2;
+let targetZ=isMob?6.5:4.2;const DEFAULT_Z=isMob?6.5:4.2;
 const R=1.6;
 
 function initGlobe(){
   scene=new THREE.Scene();
   const W=window.innerWidth, H=window.innerHeight-56;
   camera=new THREE.PerspectiveCamera(45,W/H,0.1,100);
-  camera.position.z=4.2;
+  camera.position.z=isMob?6.5:4.2;
   const isMobileDevice=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   // Safari requires specific WebGL context attributes
   const canvas = document.getElementById('globe-canvas');
@@ -1738,6 +1739,57 @@ function initGlobe(){
     targetZ=Math.max(1.9,Math.min(8.0,targetZ+e.deltaY*0.002));
     if(targetZ<DEFAULT_Z-0.1)autoRot=false;
   },{passive:false});
+
+  // ── TOUCH: drag & pinch-zoom for mobile ──────────────────────
+  let touchStart1={x:0,y:0}, touchStart2=null, pinchStartDist=0, pinchStartZ=0;
+  cvs.addEventListener('touchstart',e=>{
+    if(!mapMode)return;
+    e.preventDefault();
+    autoRot=false;
+    if(e.touches.length===1){
+      touchStart1={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      prevM={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      dragging=true;
+    } else if(e.touches.length===2){
+      dragging=false;
+      touchStart2=true;
+      pinchStartDist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      pinchStartZ=targetZ;
+    }
+  },{passive:false});
+
+  cvs.addEventListener('touchmove',e=>{
+    if(!mapMode)return;
+    e.preventDefault();
+    if(e.touches.length===1&&dragging){
+      const dx=e.touches[0].clientX-prevM.x;
+      const dy=e.touches[0].clientY-prevM.y;
+      rotY+=dx*0.005;
+      rotX+=dy*0.005;
+      rotX=Math.max(-1.4,Math.min(1.4,rotX));
+      prevM={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    } else if(e.touches.length===2&&touchStart2){
+      const dist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      const scale=pinchStartDist/dist;
+      targetZ=Math.max(1.9,Math.min(8.0,pinchStartZ*scale));
+    }
+  },{passive:false});
+
+  cvs.addEventListener('touchend',e=>{
+    if(e.touches.length===0){dragging=false;touchStart2=null;}
+    else if(e.touches.length===1){
+      touchStart2=null;
+      prevM={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      dragging=true;
+    }
+  },{passive:false});
+
   cvs.addEventListener('click',e=>{
     if(!mapMode||!allMosques.length||!dotGeo)return;
     const rect=cvs.getBoundingClientRect();
