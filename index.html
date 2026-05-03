@@ -770,6 +770,10 @@ footer{
     pointer-events:auto;
     -webkit-overflow-scrolling:touch;
   }
+  /* Scroll sections start from top of viewport on mobile */
+  #scroll-sections{
+    padding-top:72px; /* nav height + breathing space */
+  }
   /* Hide view toggle on mobile */
   #view-toggle{display:none !important;}
 
@@ -974,15 +978,36 @@ footer{
 #mobile-globe-card{
   display:none;
 }
+#mobile-globe-badge{
+  display:none;
+}
 @media(max-width:768px){
   /* Hide fixed globe canvas on mobile */
   #globe-canvas{display:none !important;}
 
+  /* Hide the 100vh desktop spacer on mobile */
+  #live-map-section{display:none !important;}
+
+  /* Badge above the card */
+  #mobile-globe-badge{
+    display:none; /* shown via map-active */
+    width:calc(100% - 32px);
+    margin:0 auto 10px;
+    justify-content:center;
+    background:rgba(0,0,0,0.0);
+    border:none;
+    padding:0;
+    font-size:12px;letter-spacing:0.04em;
+  }
+  body.map-active #mobile-globe-badge{
+    display:flex;
+  }
+
   #mobile-globe-card{
-    display:block;
+    display:none; /* shown via map-active */
     position:relative;
     width:calc(100% - 32px);
-    margin:16px auto 0;
+    margin:0 auto 0;
     border-radius:20px;
     overflow:hidden;
     border:1px solid rgba(0,212,255,0.25);
@@ -998,16 +1023,6 @@ footer{
     height:100% !important;
     border-radius:20px;
   }
-  #mobile-globe-badge{
-    position:absolute;top:14px;left:50%;transform:translateX(-50%);
-    background:rgba(0,0,0,0.55);
-    backdrop-filter:blur(12px);
-    border:1px solid rgba(255,255,255,0.12);
-    border-radius:20px;padding:5px 14px;
-    display:flex;align-items:center;gap:6px;
-    white-space:nowrap;z-index:10;
-    font-size:11px;letter-spacing:0.04em;
-  }
   .mgb-dot{
     width:6px;height:6px;border-radius:50%;
     background:#00d4ff;
@@ -1015,7 +1030,7 @@ footer{
     flex-shrink:0;
   }
   .mgb-label{color:rgba(255,255,255,0.7);font-size:11px;}
-  .mgb-count{color:#00d4ff;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;}
+  .mgb-count{color:#00d4ff;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;}
   #mobile-globe-hint{
     position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
     font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:0.08em;
@@ -1023,6 +1038,11 @@ footer{
     transition:opacity 1s ease;
   }
   #mobile-globe-hint.hidden{opacity:0;}
+
+  /* Stats flows directly under globe card — no gap */
+  #mobile-stats{
+    padding-top:16px;
+  }
 }
 </style>
 </head>
@@ -1231,13 +1251,13 @@ footer{
 
 <!-- SCROLLABLE SECTIONS -->
 <!-- Mobile Globe Card -->
+<div id="mobile-globe-badge">
+  <span class="mgb-dot"></span>
+  <span class="mgb-label">Calling Now:</span>
+  <span class="mgb-count" id="mgb-count">—</span>
+</div>
 <div id="mobile-globe-card">
   <canvas id="mobile-globe-canvas"></canvas>
-  <div id="mobile-globe-badge">
-    <span class="mgb-dot"></span>
-    <span class="mgb-label">Calling Now:</span>
-    <span class="mgb-count" id="mgb-count">—</span>
-  </div>
   <div id="mobile-globe-hint">Drag · Pinch to zoom</div>
 </div>
 
@@ -3049,8 +3069,8 @@ function initMobileGlobe(){
     mDotGeo.setAttribute('aSize',new THREE.Float32BufferAttribute(sz,1));
     const mat=new THREE.ShaderMaterial({
       uniforms:{pixelRatio:{value:mRenderer.getPixelRatio()}},
-      vertexShader:`attribute vec3 aColor;attribute float aSize;varying vec3 vC;uniform float pixelRatio;void main(){vC=aColor;gl_PointSize=aSize*pixelRatio;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec3 vC;void main(){if(length(gl_PointCoord-.5)>.5)discard;gl_FragColor=vec4(vC,1.);}`,
+      vertexShader:`attribute vec3 aColor;attribute float aSize;varying vec3 vC;uniform float pixelRatio;void main(){vC=aColor;gl_PointSize=aSize>0.?aSize*pixelRatio:0.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`varying vec3 vC;void main(){if(length(gl_PointCoord-.5)>.5)discard;if(vC.r<0.01&&vC.g<0.01&&vC.b<0.01)discard;gl_FragColor=vec4(vC,1.);}`,
       transparent:true,depthWrite:false
     });
     mDotMesh=new THREE.Points(mDotGeo,mat);
