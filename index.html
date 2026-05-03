@@ -995,7 +995,7 @@ footer{
     display:none; /* shown via map-active */
     position:relative;
     width:calc(100% - 32px);
-    margin:76px auto 20px; /* 56px nav + 20px gap at top, 20px gap at bottom */
+    margin:76px auto 8px; /* 56px nav + 20px gap at top, 8px gap at bottom */
     border-radius:20px;
     overflow:hidden;
     border:1px solid rgba(0,212,255,0.25);
@@ -1020,9 +1020,9 @@ footer{
   }
   #mobile-globe-hint.hidden{opacity:0;}
 
-  /* Stats flows directly under globe card — no gap */
+  /* Stats flows directly under globe card */
   #mobile-stats{
-    padding-top:16px;
+    padding-top:0px;
   }
 }
 </style>
@@ -3014,11 +3014,12 @@ function initMobileGlobe(){
   const earthTex=new THREE.TextureLoader().load('earth.jpg');
   mGlobe=new THREE.Mesh(
     new THREE.SphereGeometry(1,32,32),
-    new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x111122),shininess:5,color:new THREE.Color(0x888888)})
+    new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x222244),shininess:8,color:new THREE.Color(0xffffff)})
   );
   mScene.add(mGlobe);
-  mScene.add(new THREE.AmbientLight(0xffffff,0.35));
-  const sun=new THREE.DirectionalLight(0xffffff,0.5);sun.position.set(5,3,5);mScene.add(sun);
+  mScene.add(new THREE.AmbientLight(0xffffff,1.0));
+  const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(5,3,5);mScene.add(sun);
+  const sun2=new THREE.DirectionalLight(0xffffff,0.4);sun2.position.set(-5,-2,3);mScene.add(sun2);
   // Atmosphere
   mScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.02,32,32),new THREE.ShaderMaterial({
     vertexShader:`varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -3047,6 +3048,20 @@ function initMobileGlobe(){
   }
   // Wait for mosques to load
   const waitMosques=setInterval(()=>{if(allMosques&&allMosques.length){buildMDots();clearInterval(waitMosques);}},500);
+
+  // Inactivity reset — after 7s of no touch, reset zoom and resume spin
+  let _mLastTouch=0;
+  const _mDefaultZ=3.5;
+  setInterval(()=>{
+    if(!mAutoRot&&Date.now()-_mLastTouch>7000&&!mDragging){
+      // Smoothly return to default zoom and re-enable auto-rotation
+      mTargetZ=_mDefaultZ;
+      mAutoRot=true;
+      // Show hint again
+      const hint=document.getElementById('mobile-globe-hint');
+      if(hint)hint.classList.remove('hidden');
+    }
+  },1000);
 
   // Animation loop
   (function anim(){
@@ -3078,6 +3093,8 @@ function initMobileGlobe(){
   // Touch events — touch-action:none on card does the heavy lifting
   card.addEventListener('touchstart',e=>{
     e.preventDefault();
+    hideHintOnce();
+    _mLastTouch=Date.now();
     mAutoRot=false;
     if(e.touches.length===1){
       mDragging=true;
@@ -3092,6 +3109,7 @@ function initMobileGlobe(){
 
   card.addEventListener('touchmove',e=>{
     e.preventDefault();
+    _mLastTouch=Date.now();
     if(e.touches.length===1&&mDragging){
       mRotY+=(e.touches[0].clientX-mPrevT.x)*0.006;
       mRotX+=(e.touches[0].clientY-mPrevT.y)*0.006;
@@ -3138,11 +3156,11 @@ function initMobileGlobe(){
     }
   },{passive:false});
 
-  // Auto-hide hint after 4s
-  setTimeout(()=>{
+  // Hide hint on first interaction
+  function hideHintOnce(){
     const hint=document.getElementById('mobile-globe-hint');
     if(hint)hint.classList.add('hidden');
-  },4000);
+  }
 
   // Handle resize
   window.addEventListener('resize',()=>{
