@@ -1027,6 +1027,7 @@ footer{
   }
 }
 </style>
+  <link rel="preload" href="earth.jpg" as="image">
 </head>
 <body>
 
@@ -1594,11 +1595,10 @@ function enterMap(){
 
   document.body.classList.add('map-active');
 
-  // Show & init mobile globe card
+  // Show mobile globe card (already pre-initialized)
   if(window.innerWidth<=768){
     const mgc=document.getElementById('mobile-globe-card');
     if(mgc)mgc.style.display='block';
-    if(!mRenderer) setTimeout(initMobileGlobe, 200);
   }
 
   // Enable scroll
@@ -2704,6 +2704,11 @@ async function main(){
 }
 
 main();
+
+// Pre-init mobile globe immediately so it's ready when user taps Enter
+if(window.innerWidth<=768){
+  setTimeout(initMobileGlobe, 300);
+}
 
 // ══════════════════════════════════════════════════════════════
 // FLAT MAP ENGINE
