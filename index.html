@@ -1011,7 +1011,21 @@ footer{
     width:100% !important;
     height:100% !important;
     border-radius:20px;
+    opacity:0;
+    transition:opacity 0.6s ease;
   }
+  #mobile-globe-canvas.ready{opacity:1;}
+  #mobile-globe-loader{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    border-radius:20px;
+  }
+  .mgl-spinner{
+    width:36px;height:36px;border-radius:50%;
+    border:2px solid rgba(0,212,255,0.15);
+    border-top-color:rgba(0,212,255,0.7);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   #mobile-globe-hint{
     position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
@@ -1231,6 +1245,7 @@ footer{
 <!-- Mobile Globe Card -->
 <div id="mobile-globe-card">
   <canvas id="mobile-globe-canvas"></canvas>
+  <div id="mobile-globe-loader"><div class="mgl-spinner"></div></div>
   <div id="mobile-globe-hint">Drag &nbsp;·&nbsp; Pinch to zoom &nbsp;·&nbsp; Tap dots</div>
 </div>
 
@@ -3055,7 +3070,23 @@ function initMobileGlobe(){
   mRenderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 
   // Reuse already-loaded desktop texture — instant, no network request
-  const earthTex = window._earthTex || new THREE.TextureLoader().load('earth.jpg', t=>{ window._earthTex=t; });
+  const onTexReady = ()=>{
+    const cvs2=document.getElementById('mobile-globe-canvas');
+    const ldr=document.getElementById('mobile-globe-loader');
+    if(cvs2)cvs2.classList.add('ready');
+    if(ldr)ldr.style.display='none';
+  };
+  let earthTex;
+  if(window._earthTex){
+    earthTex=window._earthTex;
+    // Texture already loaded — show immediately after first render
+    setTimeout(onTexReady, 200);
+  } else {
+    earthTex=new THREE.TextureLoader().load('earth.jpg', t=>{
+      window._earthTex=t;
+      onTexReady();
+    });
+  }
   mGlobe=new THREE.Mesh(
     new THREE.SphereGeometry(1,32,32),
     new THREE.MeshPhongMaterial({map:earthTex,specular:new THREE.Color(0x222244),shininess:8,color:new THREE.Color(0xffffff)})
