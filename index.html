@@ -713,7 +713,7 @@ footer{
 .footer-copy{font-size:10px;color:var(--text3);letter-spacing:0.05em;}
 /* ── MOBILE LIVE BADGE ── */
 #mobile-live-badge{
-  display:none; /* hidden by default, shown only on mobile via JS */
+  display:none !important; /* replaced by globe card on mobile */
   position:fixed;top:70px;left:50%;transform:translateX(-50%);
   z-index:400;
   background:rgba(0,0,0,0.7);
@@ -772,11 +772,14 @@ footer{
   }
   /* Scroll sections start from top of viewport on mobile */
   #scroll-sections{
-    padding-top:72px; /* nav height + breathing space */
+    padding-top:64px; /* clears 56px fixed nav + 8px gap */
   }
-  /* Home overlay covers all sections on mobile */
-  #home-overlay{z-index:650 !important;}
-  #history,#contact{z-index:20 !important;}
+  /* Hide scrollable content on mobile until map is entered */
+  #scroll-sections{display:none;}
+  body.map-active #scroll-sections{display:block;}
+  #mobile-globe-card{display:none;}
+  /* Home overlay always on top on mobile */
+  #home-overlay{z-index:200 !important;pointer-events:all !important;}
   /* Hide view toggle on mobile */
   #view-toggle{display:none !important;}
 
@@ -837,7 +840,7 @@ footer{
   body.map-active #mobile-stats{display:block;}
   body.map-active #mobile-globe-card{display:block !important;}
   /* Badge and touch hint hidden by default — shown via JS after ENTER */
-  #mobile-live-badge{display:none;}
+  #mobile-live-badge{display:none !important;}
   #mobile-touch-hint{display:none;}
 
   /* Nav */
@@ -992,7 +995,7 @@ footer{
     display:none; /* shown via map-active */
     position:relative;
     width:calc(100% - 32px);
-    margin:16px auto 0; /* breathing space at top */
+    margin:20px auto 0; /* breathing space at top */
     border-radius:20px;
     overflow:hidden;
     border:1px solid rgba(0,212,255,0.25);
@@ -1026,12 +1029,6 @@ footer{
 </head>
 <body>
 
-<!-- Mobile Live Badge -->
-<div id="mobile-live-badge">
-  <div class="mobile-badge-dot"></div>
-  <span class="mobile-badge-text">Calling Now:</span>
-  <span class="mobile-badge-num" id="mobile-calling-num">—</span>
-</div>
 
 <!-- Mobile Touch Hints -->
 <div id="mobile-touch-hint">
@@ -1562,8 +1559,7 @@ function enterMap(){
   }, 600);
 
   // Mobile badge
-  const mBadge=document.getElementById('mobile-live-badge');
-  if(mBadge&&window.innerWidth<=768)mBadge.style.display='flex';
+  // mobile-live-badge removed on mobile
 
   // Show zoom hint persistently in map mode
   setTimeout(()=>{
@@ -1669,7 +1665,7 @@ function goHome(){
   hint.classList.remove('visible');
   hint.style.opacity = '0';
   // Hide mobile elements
-  document.getElementById('mobile-live-badge').style.display='none';
+  // mobile-live-badge removed on mobile
   const th=document.getElementById('mobile-touch-hint');
   th.style.display='none';th.classList.remove('fade-out');
 
