@@ -3125,13 +3125,14 @@ function initMobileGlobe(){
     mDotGeo.setAttribute('aColor',new THREE.Float32BufferAttribute(col,3));
     mDotGeo.setAttribute('aSize',new THREE.Float32BufferAttribute(sz,1));
     const mat=new THREE.ShaderMaterial({
-      uniforms:{pixelRatio:{value:mRenderer.getPixelRatio()}},
-      vertexShader:`attribute vec3 aColor;attribute float aSize;varying vec3 vC;uniform float pixelRatio;void main(){vC=aColor;gl_PointSize=aSize>0.?aSize*pixelRatio:0.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      vertexShader:`attribute vec3 aColor;attribute float aSize;varying vec3 vC;void main(){vC=aColor;gl_PointSize=aSize;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
       fragmentShader:`varying vec3 vC;void main(){if(length(gl_PointCoord-.5)>.5)discard;if(vC.r<0.01&&vC.g<0.01&&vC.b<0.01)discard;gl_FragColor=vec4(vC,1.);}`,
       transparent:true,depthWrite:false
     });
     mDotMesh=new THREE.Points(mDotGeo,mat);
     mScene.add(mDotMesh);
+    // Now that geometry is ready, calculate and show active dots immediately
+    updateMobileDots();
   }
   // Wait for mosques to load
   const waitMosques=setInterval(()=>{if(allMosques&&allMosques.length){buildMDots();clearInterval(waitMosques);}},500);
@@ -3185,12 +3186,8 @@ function initMobileGlobe(){
     const utcH=now.getUTCHours()+now.getUTCMinutes()/60+now.getUTCSeconds()/3600;
     const col=mDotGeo.attributes.aColor.array;
     const sz=mDotGeo.attributes.aSize.array;
-    // Scale dot size relative to camera zoom — match desktop visual size
-    const cardW=document.getElementById('mobile-globe-card').offsetWidth||350;
-    const desktopW=window.innerWidth||1400;
-    const sizeScale=(desktopW/cardW)*1.2; // compensate for smaller canvas
     const zScale=3.5/Math.max(mCamera.position.z,1.9);
-    const dotSize=Math.max(3, 3*zScale*sizeScale/4);
+    const dotSize=Math.max(6, 8*zScale);
     allMosques.forEach((m,i)=>{
       const localH=(utcH+m.tz+48)%24;
       const times=calcPrayers(m.lat,m.lon,m.tz,now,m.country);
@@ -3214,18 +3211,14 @@ function initMobileGlobe(){
     mDotGeo.attributes.aSize.needsUpdate=true;
   }
 
-  // Update dots every 10 seconds independently
-  updateMobileDots();
+  // Update dots every 10 seconds independently (first call happens inside buildMDots)
   setInterval(updateMobileDots, 10000);
   // Also update dot sizes when zoom changes
   setInterval(()=>{
     if(mDotGeo&&allMosques.length){
       const sz=mDotGeo.attributes.aSize.array;
-      const cardW=document.getElementById('mobile-globe-card').offsetWidth||350;
-      const desktopW=window.innerWidth||1400;
-      const sizeScale=(desktopW/cardW)*1.2;
       const zScale=3.5/Math.max(mCamera.position.z,1.9);
-      const dotSize=Math.max(3,3*zScale*sizeScale/4);
+      const dotSize=Math.max(6,8*zScale);
       for(let i=0;i<sz.length;i++){if(sz[i]>0)sz[i]=dotSize;}
       mDotGeo.attributes.aSize.needsUpdate=true;
     }
