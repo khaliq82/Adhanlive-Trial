@@ -3169,22 +3169,49 @@ function initMobileGlobe(){
     mRenderer.render(mScene,mCamera);
   })();
 
-  // Sync dots with main globe every second
-  setInterval(()=>{
-    if(!mDotGeo||!dotGeo)return;
-    const mCol=mDotGeo.attributes.aColor.array;
-    const mSz=mDotGeo.attributes.aSize.array;
-    const col=dotGeo.attributes.aColor.array;
-    const sz=dotGeo.attributes.aSize.array;
-    const len=Math.min(mCol.length,col.length);
-    for(let i=0;i<len;i++)mCol[i]=col[i];
-    const slen=Math.min(mSz.length,sz.length);
+  // Independent prayer calculation for mobile — doesn't rely on hidden desktop canvas
+  const PRAYER_COLORS_M={
+    fajr:new THREE.Color(0x4466ff),
+    dhuhr:new THREE.Color(0xffdd00),
+    asr:new THREE.Color(0xff7700),
+    maghrib:new THREE.Color(0xff2200),
+    isha:new THREE.Color(0xcc44ff)
+  };
+  const WINDOW_M=3/60;
+
+  function updateMobileDots(){
+    if(!mDotGeo||!allMosques.length)return;
+    const now=new Date();
+    const utcH=now.getUTCHours()+now.getUTCMinutes()/60+now.getUTCSeconds()/3600;
+    const col=mDotGeo.attributes.aColor.array;
+    const sz=mDotGeo.attributes.aSize.array;
     const zScale=3.5/Math.max(mCamera.position.z,1.9);
-    for(let i=0;i<slen;i++)mSz[i]=sz[i]>0?Math.max(2,2.5*zScale):0;
-    // Sync dot colors/sizes from main renderer
+    allMosques.forEach((m,i)=>{
+      const localH=(utcH+m.tz+48)%24;
+      const times=calcPrayers(m.lat,m.lon,m.tz,now,m.country);
+      let active=null;
+      for(const p of ['fajr','dhuhr','asr','maghrib','isha']){
+        if(isNaN(times[p]))continue;
+        const t=((times[p]%24)+24)%24;
+        const diff=((localH-t)%24+24)%24;
+        if(diff>=0&&diff<=WINDOW_M){active=p;break;}
+      }
+      if(active){
+        const c=PRAYER_COLORS_M[active];
+        col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+        sz[i]=Math.max(2,2.5*zScale);
+      } else {
+        col[i*3]=0;col[i*3+1]=0;col[i*3+2]=0;
+        sz[i]=0;
+      }
+    });
     mDotGeo.attributes.aColor.needsUpdate=true;
     mDotGeo.attributes.aSize.needsUpdate=true;
-  },1000);
+  }
+
+  // Update dots every 10 seconds independently
+  updateMobileDots();
+  setInterval(updateMobileDots, 10000);
 
   // Touch events — touch-action:none on card does the heavy lifting
   card.addEventListener('touchstart',e=>{
