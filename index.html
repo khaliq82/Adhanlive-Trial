@@ -2736,6 +2736,8 @@ async function main(){
     await yieldToBrowser();
   }
   setInterval(tick,10000);
+  // Rebuild mobile globe dots now that full dataset is loaded
+  if(window._buildMDots) window._buildMDots();
   // Pre-calculate all prayer times (runs once, used all day)
   precalcPrayerTimes();
   calcAdhanStats();
@@ -3135,7 +3137,7 @@ function initMobileGlobe(){
     updateMobileDots();
   }
   // Wait for mosques to load
-  const waitMosques=setInterval(()=>{if(allMosques&&allMosques.length){buildMDots();clearInterval(waitMosques);}},500);
+  const waitMosques=setInterval(()=>{if(allMosques&&allMosques.length){buildMDots();window._buildMDots=buildMDots;clearInterval(waitMosques);}},500);
 
   // Inactivity reset — after 7s of no touch, reset zoom and resume spin
   let _mLastTouch=0;
