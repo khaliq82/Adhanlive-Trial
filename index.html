@@ -3185,7 +3185,12 @@ function initMobileGlobe(){
     const utcH=now.getUTCHours()+now.getUTCMinutes()/60+now.getUTCSeconds()/3600;
     const col=mDotGeo.attributes.aColor.array;
     const sz=mDotGeo.attributes.aSize.array;
+    // Scale dot size relative to camera zoom — match desktop visual size
+    const cardW=document.getElementById('mobile-globe-card').offsetWidth||350;
+    const desktopW=window.innerWidth||1400;
+    const sizeScale=(desktopW/cardW)*1.2; // compensate for smaller canvas
     const zScale=3.5/Math.max(mCamera.position.z,1.9);
+    const dotSize=Math.max(3, 3*zScale*sizeScale/4);
     allMosques.forEach((m,i)=>{
       const localH=(utcH+m.tz+48)%24;
       const times=calcPrayers(m.lat,m.lon,m.tz,now,m.country);
@@ -3199,7 +3204,7 @@ function initMobileGlobe(){
       if(active){
         const c=PRAYER_COLORS_M[active];
         col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
-        sz[i]=Math.max(2,2.5*zScale);
+        sz[i]=dotSize;
       } else {
         col[i*3]=0;col[i*3+1]=0;col[i*3+2]=0;
         sz[i]=0;
@@ -3212,6 +3217,19 @@ function initMobileGlobe(){
   // Update dots every 10 seconds independently
   updateMobileDots();
   setInterval(updateMobileDots, 10000);
+  // Also update dot sizes when zoom changes
+  setInterval(()=>{
+    if(mDotGeo&&allMosques.length){
+      const sz=mDotGeo.attributes.aSize.array;
+      const cardW=document.getElementById('mobile-globe-card').offsetWidth||350;
+      const desktopW=window.innerWidth||1400;
+      const sizeScale=(desktopW/cardW)*1.2;
+      const zScale=3.5/Math.max(mCamera.position.z,1.9);
+      const dotSize=Math.max(3,3*zScale*sizeScale/4);
+      for(let i=0;i<sz.length;i++){if(sz[i]>0)sz[i]=dotSize;}
+      mDotGeo.attributes.aSize.needsUpdate=true;
+    }
+  },500);
 
   // Touch events — touch-action:none on card does the heavy lifting
   card.addEventListener('touchstart',e=>{
