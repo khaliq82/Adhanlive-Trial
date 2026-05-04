@@ -2237,7 +2237,7 @@ function updateMobileStats(calling,pC,activeMosques){
   const mt=document.getElementById('m-today');
   if(mc)mc.textContent=calling.toLocaleString();
   if(mm)mm.textContent=allMosques.length.toLocaleString();
-  if(mt){const ms=getAdhanStats();mt.textContent=ms.completed.toLocaleString()+' done';}
+  if(mt){const ms=getAdhanStats();mt.textContent=ms.completed.toLocaleString();}
 
   // Prayer bars — use exact globe colors
   const mx=Math.max(...Object.values(pC),1);
